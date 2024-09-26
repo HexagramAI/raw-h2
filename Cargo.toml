@@ -1,5 +1,5 @@
 [package]
-name = "ntex-h2"
+name = "raw-h2"
 version = "1.1.0"
 license = "MIT OR Apache-2.0"
 authors = ["Nikolay Kim <fafhrd91@gmail.com>"]
@@ -54,5 +54,3 @@ openssl = "0.10"
 # Examples
 env_logger = { version = "0.11", default-features = false }
 
-[patch.crates-io]
-ntex-h2 = { path = "." }

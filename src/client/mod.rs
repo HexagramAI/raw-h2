@@ -4,6 +4,7 @@ mod connector;
 mod pool;
 mod simple;
 mod stream;
+pub mod simple2;
 
 use crate::{error::ConnectionError, error::OperationError, frame};
 
