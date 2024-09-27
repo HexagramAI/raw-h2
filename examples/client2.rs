@@ -8,8 +8,13 @@ use ntex_http::{header, uri::Scheme, HeaderMap, Method};
 use ntex_util::time::{sleep, Seconds};
 use raw_h2::client::simple2::SimpleClient;
 
-#[ntex::main]
-pub async fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn Error>>{
+  ntex::rt::System::new("abc")
+    .block_on(run())
+}
+
+// #[ntex::main]
+async fn run() -> Result<(), Box<dyn Error>> {
   // std::env::set_var("RUST_LOG", "trace,polling=info,mio=info");
   env_logger::init();
 
