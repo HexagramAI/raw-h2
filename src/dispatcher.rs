@@ -9,7 +9,7 @@ use crate::connection::{Connection, RecvHalfConnection};
 use crate::control::{Control, ControlAck};
 use crate::error::{ConnectionError, OperationError, StreamErrorInner};
 use crate::frame::{Frame, GoAway, Ping, Reason, Reset, StreamId};
-use crate::{codec::Codec, message::Message, stream::StreamRef};
+use crate::{codec::Codec, message::Message, stream::StreamRef, MessageKind};
 
 /// Amqp server dispatcher service.
 pub(crate) struct Dispatcher<Ctl, Pub>
@@ -127,6 +127,9 @@ where
     ) -> Result<Self::Response, Self::Error> {
         log::debug!("Handle h2 message: {:?}", request);
 
+        let pong_stream = StreamRef::new(StreamId::new(0), true, self.inner.connection.clone());
+        let mut pong_bytes = [0; 8];
+
         match request {
             DispatchItem::Item(frame) => match frame {
                 Frame::Headers(hdrs) => {
@@ -175,6 +178,12 @@ where
                 }
                 Frame::Ping(ping) => {
                     log::trace!("processing PING: {:#?}", ping);
+                    pong_bytes.copy_from_slice(ping.payload());
+                    let message = Message {
+                        stream: pong_stream.clone(),
+                        kind: MessageKind::Pong(u64::from_be_bytes(pong_bytes)),
+                    };
+                    self.handle_message(Ok(Some((pong_stream.clone(), message))), ctx).await?;
                     if ping.is_ack() {
                         self.connection.recv_pong(ping);
                         Ok(None)

@@ -20,6 +20,7 @@ pub enum MessageKind {
     },
     Data(Bytes, Capacity),
     Eof(StreamEof),
+    Pong(u64),
     Disconnect(OperationError),
 }
 

@@ -1,13 +1,13 @@
 use ntex_service::{Service, ServiceCtx};
 use ntex_util::channel::mpsc::Sender;
-use crate::{Message, Stream, StreamRef};
+use crate::{frame, Message, Stream, StreamRef};
 
 use std::{fmt, rc::Rc};
 use std::task::{Context, Poll};
 use ntex_bytes::{ByteString, Bytes};
 use ntex_http::{uri::Scheme, HeaderMap, Method};
 use ntex_io::{Dispatcher as IoDispatcher, IoBoxed, OnDisconnect};
-
+use ntex_util::time::Seconds;
 use crate::connection::Connection;
 use crate::default::DefaultControlService;
 use crate::dispatcher::Dispatcher;
@@ -47,6 +47,8 @@ impl SimpleClient {
     message_tx: Sender<Message>,
   ) -> Self {
     let codec = Codec::default();
+    // disable system ping-pong
+    config.0.ping_timeout.set(Seconds(0));
     let con = Connection::new(io.get_ref(), codec, config, false);
     con.set_secure(scheme == Scheme::HTTPS);
 
@@ -89,6 +91,11 @@ impl SimpleClient {
       .await?;
 
     Ok(SendStream(stream))
+  }
+
+  #[inline]
+  pub fn ping(&self, data: u64) {
+    self.0.con.encode(frame::Ping::new(data.to_be_bytes()));
   }
 
   #[inline]

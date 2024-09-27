@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::net::SocketAddr;
+use std::time::{Duration, Instant};
 use ntex::rt::tcp_connect;
 use ntex_bytes::Bytes;
 use raw_h2::{Config, MessageKind};
@@ -18,6 +19,8 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
   let config = Config::client();
   let client = SimpleClient::new(io, config, Scheme::HTTP, "example.com".into(), msg_tx);
 
+  let ping_timer = Instant::now();
+
   ntex::rt::spawn(async move {
     while let Some(msg) = msg_rx.recv().await {
       let stream_id: u32 = msg.stream.id().into();
@@ -30,6 +33,10 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
         },
         MessageKind::Disconnect(e) => {
           break;
+        },
+        MessageKind::Pong(payload) => {
+          let rtt_us = ping_timer.elapsed().as_micros() as u64 - payload;
+          println!("ping-pong rtt-us: {}", rtt_us);
         },
       }
     }
@@ -50,6 +57,13 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
     .send_payload(Bytes::from_static(b"testing"), true)
     .await
     .unwrap();
+
+  for _ in 0..10 {
+    sleep(Seconds(3)).await;
+    println!("ping-pong");
+
+    client.ping(ping_timer.elapsed().as_micros() as u64);
+  }
 
   sleep(Seconds(20)).await;
   Ok(())
